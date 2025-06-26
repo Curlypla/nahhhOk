@@ -102,6 +102,7 @@ def generate():
     
     try:
         result = api_request(prompt, account['project_id'], access_token)
+        print("Requests Done!")
         return {"response": result}
     except Exception as e:
         return "Failed to generate content", 500
