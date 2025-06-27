@@ -52,7 +52,8 @@ def get_new_access_token(acc_token):
     new_token_data = response.json()
     return new_token_data['access_token']
 
-def api_request(prompt, project_id, access_token):
+def api_request(prompt, project_id, access_token, model_name):
+    prompt = prompt.replace("Be meticulous in removing all watermarks and site links.", "Be meticulous in removing all watermarks and site links, while trying to recover, if present, the original text without the watermarks or site links.")
     headers = {
         "Authorization": f"Bearer {access_token}",
         "User-Agent": "GeminiCLI/0.1.1 (win32; x64) google-api-nodejs-client/9.15.1",
@@ -61,7 +62,7 @@ def api_request(prompt, project_id, access_token):
     }
 
     request_body = {
-        "model": "gemini-2.5-pro",
+        "model": model_name,
         "project": project_id,
         "request": {
             "contents": [
@@ -108,12 +109,14 @@ def generate():
         return "Failed to obtain access token", 500
     
     try:
-        result = api_request(prompt, account['project_id'], access_token)
-        print("Requests Done!")
+        result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-pro")
         return {"response": result}
     except Exception as e:
-        return "Failed to generate content", 500
-    
+        try:
+            result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-flash")
+            return {"response": result}
+        except Exception as e2:
+            return "Failed to generate content", 500
 
 if __name__ == '__main__':
     app.run(port=2222, debug=True)
