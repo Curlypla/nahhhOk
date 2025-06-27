@@ -105,6 +105,7 @@ def generate():
         print("Requests Done!")
         return {"response": result}
     except Exception as e:
+        print(e)
         return "Failed to generate content", 500
     
 
