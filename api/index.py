@@ -75,8 +75,14 @@ def api_request(prompt, project_id, access_token):
             }]
         }
     }
-
-    response = requests.post(API_URL, headers=headers, json=request_body, timeout=60*7).json()
+    rdmProxy = requests.get("http://mw084wsk0os0so0gwsowcwkk.147.160.139.148.sslip.io/getproxy").json()
+    proxy_ip = rdmProxy["proxy"]["ip"]
+    proxy_url = rdmProxy["proxy"]["url"]
+    proxies = {
+        "http": f"http://{proxy_url}",
+        "https": f"https://{proxy_url}"
+    }
+    response = requests.post(API_URL, headers=headers, json=request_body, timeout=60*7, proxies=proxies).json()
     print(str(response)[:150])
     result = response["response"]["candidates"][0]["content"]["parts"][0]["text"]
     return result
