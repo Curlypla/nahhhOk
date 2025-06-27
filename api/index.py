@@ -77,7 +77,7 @@ def api_request(prompt, project_id, access_token):
     }
 
     response = requests.post(API_URL, headers=headers, json=request_body, timeout=60*7).json()
-    print(str(result)[:150])
+    print(str(response)[:150])
     result = response["response"]["candidates"][0]["content"]["parts"][0]["text"]
     return result
 
