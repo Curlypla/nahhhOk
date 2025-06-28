@@ -19,6 +19,8 @@ CLIENT_ID = base64_decode("NjgxMjU1ODA5Mzk1LW9vOGZ0Mm9wcmRybnA5ZTNhcWY2YXYzaG1ka
 CLIENT_SECRET = base64_decode("R09DU1BYLTR1SGdNUG0tMW83U2stZ2VWNkN1NWNsWEZzeGw=")
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 API_URL = base64_decode("aHR0cHM6Ly9jbG91ZGNvZGUtcGEuZ29vZ2xlYXBpcy5jb20vdjFpbnRlcm5hbDpnZW5lcmF0ZUNvbnRlbnQ=")
+accounts = json.loads(base64_decode(os.environ.get("KEYS", "{}")))
+API_KEYS = os.getenv("API_KEYS").split(",")  # Comma-separated list of API 
 
 def cache_token(duration_minutes=30):
     """Décorateur pour mettre en cache le token d'accès pendant une durée donnée"""
@@ -36,8 +38,6 @@ def cache_token(duration_minutes=30):
             return result
         return wrapper
     return decorator
-
-accounts = json.loads(base64_decode(os.environ.get("KEYS", "{}")))
 
 
 @cache_token(duration_minutes=30)
@@ -84,9 +84,39 @@ def api_request(prompt, project_id, access_token, model_name):
         "https": f"https://{proxy_url}"
     }
     response = requests.post(API_URL, headers=headers, json=request_body, timeout=60*7, proxies=proxies).json()
-    print(str(response)[:150])
+    print("Using uniAPI : " +str(response)[:150])
     result = response["response"]["candidates"][0]["content"]["parts"][0]["text"]
     return result
+
+def real_api_request(prompt, model_name):
+    api_key = random.choice(API_KEYS).strip()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    data = {
+        "generationConfig": {
+            "temperature": 1,
+            "topP": 0.95,
+            "topK": 64,
+            "maxOutputTokens": 65536,
+            "responseMimeType": "text/plain"
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ]
+    }
+    response = requests.post(url, headers=headers, json=data, timeout=60*5).json()
+    print("Using API : " + str(response)[:150])
+    chat_response = response["candidates"][0]["content"]["parts"][0]["text"]
+    return chat_response
 
 @app.route('/')
 def index():
@@ -103,20 +133,28 @@ def generate():
     random_key = random.choice(list(accounts.keys()))
     account = accounts[random_key]
 
-    print(f"Using account: {account}")
     access_token = get_new_access_token(account['refresh_token'])
     if not access_token:
         return "Failed to obtain access token", 500
     
+    # First Try : Gem Pro using int API
     try:
         result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-pro")
         return {"response": result}
     except Exception as e:
+        # Second Try : real api request for best modell
         try:
-            result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-flash")
+            result = real_api_request(prompt=prompt, model_name="gemini-2.5-pro")
             return {"response": result}
         except Exception as e2:
-            return "Failed to generate content", 500
+            # Third Try : Gem Flash using int API
+            try:
+                result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-flash")
+                return {"response": result}
+            except Exception as e3:
+                return "Failed to generate content", 500
+
+
 
 if __name__ == '__main__':
     app.run(port=2222, debug=True)
