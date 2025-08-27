@@ -151,24 +151,28 @@ def generate():
     for i in range(3):
         try:
             result = real_api_request(prompt=prompt, model_name="gemini-2.5-pro")
-            print(f"API Gem2.5 tried {i+1} Success : {result[:100]}")
+            print(f"API Gem2.5 tried {i+1} Success : {result[:70].replace("\n", "")}")
             return {"response": result}
         except Exception as e:
+            if i == 2:
+                print(f"API Gem2.5 tried {i+1} Failed : {e}")
             continue
 
     # 1 time api_request call with gemini-2.5-pro
     try:
         result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-pro")
-        print(f"reAPI Gem2.5-pro Success : {result[:100]}")
+        print(f"reAPI Gem2.5-pro Success : {result[:70].replace("\n", "")}")
         return {"response": result}
     except Exception as e:
+        print(f"reAPI Gem2.5-pro Failed : {e}")
         pass
 
     try:
         result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-flash")
-        print(f"API Gem2.5-flash Success : {result[:100]}")
+        print(f"API Gem2.5-flash Success : {result[:70].replace("\n", "")}")
         return {"response": result}
     except Exception as e:
+        print("API Gem2.5-flash Failed : {e}")
         return "Failed to generate content", 500
 
     # First Try : Gem Pro using int API
