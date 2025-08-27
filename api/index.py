@@ -84,7 +84,6 @@ def api_request(prompt, project_id, access_token, model_name):
         "https": f"https://{proxy_url}"
     }
     response = requests.post(API_URL, headers=headers, json=request_body, timeout=60*7, proxies=proxies).json()
-    print("Using uniAPI : " + f"{model_name[:-5]}" + str(response)[:150])
     result = response["response"]["candidates"][0]["content"]["parts"][0]["text"]
     return result
 
@@ -121,13 +120,21 @@ def real_api_request(prompt, model_name):
         "https": f"https://{proxy_url}"
     }
     response = requests.post(url, headers=headers, json=data, timeout=60*5, proxies=proxies).json()
-    print("Using API : " + str(response)[:150])
     chat_response = response["candidates"][0]["content"]["parts"][0]["text"]
     return chat_response
 
 @app.route('/')
 def index():
     return "yey"
+
+def get_valid_account():
+    random_key = random.choice(list(accounts.keys()))
+    account = accounts[random_key]
+    try:
+        access_token = get_new_access_token(account['refresh_token'])
+        return account, access_token
+    except Exception as e:
+        return get_valid_account()
 
 @app.route('/generate', methods=['POST'])
 def generate():
@@ -137,29 +144,49 @@ def generate():
     if not prompt:
         return "Prompt is required", 400
 
-    random_key = random.choice(list(accounts.keys()))
-    account = accounts[random_key]
+    account, access_token = get_valid_account()
 
-    access_token = get_new_access_token(account['refresh_token'])
-    if not access_token:
-        return "Failed to obtain access token", 500
-    
-    # First Try : Gem Pro using int API
-    try:
-        result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-pro")
-        return {"response": result}
-    except Exception as e:
-        # Second Try : real api request for best modell
+    # try 3 real_api_request call, if fail use api_request
+    # each time print "API_try_numtry"
+    for i in range(3):
         try:
             result = real_api_request(prompt=prompt, model_name="gemini-2.5-pro")
+            print(f"API Gem2.5 tried {i+1} Success : {result[:100]}")
             return {"response": result}
-        except Exception as e2:
-            # Third Try : Gem Flash using int API
-            try:
-                result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-flash")
-                return {"response": result}
-            except Exception as e3:
-                return "Failed to generate content", 500
+        except Exception as e:
+            continue
+
+    # 1 time api_request call with gemini-2.5-pro
+    try:
+        result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-pro")
+        print(f"reAPI Gem2.5-pro Success : {result[:100]}")
+        return {"response": result}
+    except Exception as e:
+        pass
+
+    try:
+        result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-flash")
+        print(f"API Gem2.5-flash Success : {result[:100]}")
+        return {"response": result}
+    except Exception as e:
+        return "Failed to generate content", 500
+
+    # First Try : Gem Pro using int API
+    # try:
+    #     result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-pro")
+    #     return {"response": result}
+    # except Exception as e:
+    #     # Second Try : real api request for best modell
+    #     try:
+    #         result = real_api_request(prompt=prompt, model_name="gemini-2.5-pro")
+    #         return {"response": result}
+    #     except Exception as e2:
+    #         # Third Try : Gem Flash using int API
+    #         try:
+    #             result = api_request(prompt, account['project_id'], access_token, model_name="gemini-2.5-flash")
+    #             return {"response": result}
+    #         except Exception as e3:
+    #             return "Failed to generate content", 500
 
 
 
