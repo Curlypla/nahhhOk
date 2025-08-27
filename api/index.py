@@ -84,6 +84,7 @@ def api_request(prompt, project_id, access_token, model_name):
         "https": f"https://{proxy_url}"
     }
     response = requests.post(API_URL, headers=headers, json=request_body, timeout=60*7, proxies=proxies).json()
+    print("reapi- " + str(response)[:250].replace("\n", ""))
     result = response["response"]["candidates"][0]["content"]["parts"][0]["text"]
     return result
 
@@ -120,6 +121,7 @@ def real_api_request(prompt, model_name):
         "https": f"https://{proxy_url}"
     }
     response = requests.post(url, headers=headers, json=data, timeout=60*5, proxies=proxies).json()
+    print("api- " + str(response)[:250].replace("\n", ""))
     chat_response = response["candidates"][0]["content"]["parts"][0]["text"]
     return chat_response
 
@@ -154,8 +156,6 @@ def generate():
             print(f"API Gem2.5 tried {i+1} Success : {result[:70].replace("\n", "")}")
             return {"response": result}
         except Exception as e:
-            if i == 2:
-                print(f"API Gem2.5 tried {i+1} Failed : {e}")
             continue
 
     # 1 time api_request call with gemini-2.5-pro
@@ -164,7 +164,6 @@ def generate():
         print(f"reAPI Gem2.5-pro Success : {result[:70].replace("\n", "")}")
         return {"response": result}
     except Exception as e:
-        print(f"reAPI Gem2.5-pro Failed : {e}")
         pass
 
     try:
@@ -172,7 +171,6 @@ def generate():
         print(f"API Gem2.5-flash Success : {result[:70].replace("\n", "")}")
         return {"response": result}
     except Exception as e:
-        print("API Gem2.5-flash Failed : {e}")
         return "Failed to generate content", 500
 
     # First Try : Gem Pro using int API
