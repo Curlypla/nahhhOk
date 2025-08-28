@@ -97,30 +97,30 @@ def real_api_request(prompt, model_name):
     }
 
     data = {
-        "generationConfig": {
-            "temperature": 1,
-            "topP": 0.95,
-            "topK": 64,
-            "maxOutputTokens": 65536,
-            "responseMimeType": "text/plain"
-        },
         "contents": [
+        {
+            "role": "user",
+            "parts": [
             {
-                "role": "user",
-                "parts": [
-                    {"text": prompt}
-                ]
-            }
-        ]
+                "text": prompt
+            },
+            ]
+        },
+        ],
+        "generationConfig": {
+        "thinkingConfig": {
+            "thinkingBudget": -1,
+        },
+        },
     }
-    rdmProxy = requests.get("http://mw084wsk0os0so0gwsowcwkk.147.160.139.148.sslip.io/getproxy").json()
-    proxy_ip = rdmProxy["proxy"]["ip"]
-    proxy_url = rdmProxy["proxy"]["url"]
-    proxies = {
-        "http": f"http://{proxy_url}",
-        "https": f"https://{proxy_url}"
-    }
-    response = requests.post(url, headers=headers, json=data, timeout=60*5, proxies=proxies).json()
+    # rdmProxy = requests.get("http://mw084wsk0os0so0gwsowcwkk.147.160.139.148.sslip.io/getproxy").json()
+    # proxy_ip = rdmProxy["proxy"]["ip"]
+    # proxy_url = rdmProxy["proxy"]["url"]
+    # proxies = {
+    #     "http": f"http://{proxy_url}",
+    #     "https": f"https://{proxy_url}"
+    # }
+    response = requests.post(url, headers=headers, json=data, timeout=60*5).json()
     print("api- " + str(response)[:250].replace("\n", ""))
     chat_response = response["candidates"][0]["content"]["parts"][0]["text"]
     return chat_response
